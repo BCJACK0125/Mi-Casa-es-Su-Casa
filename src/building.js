@@ -9,7 +9,7 @@ import { Door } from './door.js';
 
 export const FLOOR_H = 3.0;
 export const FLOORS = ['B1', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'];
-export const HOME_FLOOR = 6;
+export const HOME_FLOOR = 8;           // index into FLOORS -> '8'
 export const STAIR = { x0: 8.3, x1: 11.7, xl: 10.6, z0: 10.775, z1: 13.3, zm: 12.05 };
 const RISE = 1.5, RUN = STAIR.xl - STAIR.x0;
 const COPIES = [-2, -1, 1, 2];
@@ -155,14 +155,14 @@ export function buildBuilding(scene, app) {
 }
 
 function makeSign() {
-  const tex = T.label('6F', { w: 256, h: 160, bg: '#f7f5ef', fg: '#1f3c66', font: 'bold 110px "Segoe UI", sans-serif' });
+  const tex = T.label('8F', { w: 256, h: 160, bg: '#f7f5ef', fg: '#1f3c66', font: 'bold 110px "Segoe UI", sans-serif' });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.21), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.4 }));
   mesh.position.set(6.69, 1.62, 12.55); mesh.rotation.y = Math.PI / 2;
   return { mesh, draw: (s) => tex.userData.draw(s + 'F') };
 }
 
 function makeLantern() {
-  const tex = T.label('6', { w: 128, h: 96, bg: '#080808', fg: '#ff3324', font: 'bold 80px "Courier New", monospace', glow: true });
+  const tex = T.label('8', { w: 128, h: 96, bg: '#080808', fg: '#ff3324', font: 'bold 80px "Courier New", monospace', glow: true });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.2), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
   mesh.position.set(6.692, 2.31, 11.9); mesh.rotation.y = Math.PI / 2;
   return { mesh, draw: (s) => tex.userData.draw(s) };
@@ -219,7 +219,7 @@ class Elevator {
       this.buttons.push({ idx, mat });
     }));
     // in-car display
-    this.carTex = T.label('6', { w: 128, h: 96, bg: '#080808', fg: '#ff3324', font: 'bold 80px "Courier New", monospace', glow: true });
+    this.carTex = T.label('8', { w: 128, h: 96, bg: '#080808', fg: '#ff3324', font: 'bold 80px "Courier New", monospace', glow: true });
     const disp = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.12), new THREE.MeshBasicMaterial({ map: this.carTex, toneMapped: false }));
     disp.position.set(6.49, 1.85, 12.5); disp.rotation.y = -Math.PI / 2; g.add(disp);
     // sliding doors (teal outside, brushed steel inside)
@@ -238,6 +238,14 @@ class Elevator {
     g.add(call);
   }
   setDisplay(i) { this.carTex.userData.draw(floorName(i)); }
+  // Park the car at floor i with the doors shut (used for the opening ride).
+  park(i) {
+    this.cur = this.target = this.display = i;
+    this.state = 'closed'; this.f = 0; this.timer = 0;
+    this.buttons.forEach((b) => (b.mat.emissiveIntensity = 0));
+    this.callMat.emissiveIntensity = 0;
+    this.setDisplay(i);
+  }
   inCar(p) { return p.x > 5.25 && p.x < 6.6 && p.z > 11.05 && p.z < 12.75; }
   call() {
     if (this.state === 'closed') { this.state = 'opening'; this.app.audio.ding(); this.callMat.emissiveIntensity = 1.5; }
@@ -246,6 +254,11 @@ class Elevator {
   }
   select(idx) {
     if (this.state === 'moving') return;
+    // Opening ride: the doors only open once you reach home (8F).
+    if (this.app.intro && idx === this.cur && idx !== HOME_FLOOR) {
+      this.app.ui.toast(`這裡是 ${floorName(idx)} 樓。我家在 ${floorName(HOME_FLOOR)} 樓，按 ${floorName(HOME_FLOOR)}。`);
+      return;
+    }
     this.buttons.forEach((b) => (b.mat.emissiveIntensity = b.idx === idx ? 1.4 : 0));
     this.target = idx;
     if (idx === this.cur) { this.call(); return; }
@@ -294,7 +307,13 @@ class Elevator {
           this.buttons.forEach((b) => (b.mat.emissiveIntensity = 0));
           this.app.setFloor(this.cur, { arrive: true });
           this.app.audio.ding();
-          this.state = 'opening';
+          if (this.app.intro && this.cur !== HOME_FLOOR) {
+            this.state = 'closed'; this.target = this.cur;
+            this.app.ui.toast(`${floorName(this.cur)} 樓到了……門沒有開。我家在 ${floorName(HOME_FLOOR)} 樓。`);
+          } else {
+            if (this.app.intro) this.app.endIntro();
+            this.state = 'opening';
+          }
         }
         break;
       }

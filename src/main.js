@@ -47,7 +47,7 @@ const loader = new THREE.TextureLoader(manager);
 
 const app = {
   audio: new Audio(), shake: 0, floor: HOME_FLOOR, mode: 'title', view: 'fp', night: true, quality: !isTouch, cut: true,
-  ui: { toast, area }, setFloor,
+  ui: { toast, area }, setFloor, intro: false, endIntro,
 };
 
 initMaterials(loader);
@@ -260,12 +260,13 @@ function setFloor(i, { arrive = false, quiet = false, stairs = 0 } = {}) {
   $('#floorNum').textContent = floorName(app.floor);
   if (quiet || !arrive) return;
   const f = floorName(app.floor);
+  if (app.intro) { area(f, app.floor === HOME_FLOOR ? '叮！到家了' : '叮！', true, 1.8); return; }
   area(f, stairs ? (stairs > 0 ? '往上一層' : '往下一層') : '叮！', true, 1.8);
   if (stairs && Math.abs(stairs) === 1 && f === '1' && stairs < 0) toast('一樓……樓梯還在往下延伸。');
   setTimeout(() => {
     if (stairs > 0 && f === 'B1') toast('11 樓再往上……怎麼會是 B1？');
     else if (stairs < 0 && f === '11') toast('B1 再往下……變成 11 樓了。');
-    else if (app.floor === HOME_FLOOR) toast('6F，到家了。');
+    else if (app.floor === HOME_FLOOR) toast(`${floorName(HOME_FLOOR)}F，到家了。`);
     else toast(LOOP_LINES[loopIdx++ % LOOP_LINES.length].replace('{f}', f));
   }, stairs ? 300 : 900);
 }
@@ -331,14 +332,25 @@ function enterWalk(start = false) {
   minimap.resize();
   avatar.visible = app.view === 'tp';
   if (start) {
-    setFloor(HOME_FLOOR);
-    setTimeout(() => { elevator.call(); area('6F', '叮！到家了', true, 2); }, 700);
-    setTimeout(() => toast('走出電梯，對著鐵門按 E 開門回家'), 2600);
+    // Opening: you start in the lift on 1F with the doors shut; press 8 to go home.
+    const ground = FLOORS.indexOf('1');
+    app.intro = true;
+    elevator.park(ground);
+    setFloor(ground);
+    setTimeout(() => area('1F', '電梯裡', true, 2), 500);
+    setTimeout(() => toast(`我家在 ${floorName(HOME_FLOOR)} 樓：按下電梯的 ${floorName(HOME_FLOOR)} 號按鈕（或鍵盤 ${floorName(HOME_FLOOR)}）`), 1600);
   }
   lock();
 }
+// Called when the opening ride reaches home (or is skipped via overview).
+function endIntro() {
+  if (!app.intro) return;
+  app.intro = false;
+  setTimeout(() => toast('走出電梯，對著鐵門按 E 開門回家'), 1400);
+}
 function enterOverview() {
   app.audio.init();
+  if (app.intro) { app.intro = false; elevator.park(HOME_FLOOR); setFloor(HOME_FLOOR); }
   app.mode = 'overview';
   if (document.pointerLockElement) document.exitPointerLock();
   orbit.enabled = true;
