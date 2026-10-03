@@ -2,7 +2,10 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#120f0c">
 <title>Mi Casa es Su Casa</title>
 <meta name="description" content="用 3D 重建的我家：第一人稱走逛、第三人稱俯瞰，搭電梯或走樓梯，不管到哪一層都會回到家。">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
@@ -23,9 +26,13 @@
 <!-- ============ title screen ============ -->
 <section id="title" class="screen">
   <div class="title-card">
+    <div class="tc-left">
     <p class="eyebrow">8F · 我家 3D 重建</p>
     <h1>Mi Casa<br><span>es Su Casa</span></h1>
     <p class="lede">我家就是你家，在 8 樓。先搭電梯上來，推開鐵門走進來看看——<br>之後搭電梯或走樓梯都行，只是不管到了哪一層，打開門都還是這個家。</p>
+    <p class="rotate-tip">📱↻ 把手機橫過來玩，視野更寬</p>
+    </div>
+    <div class="tc-right">
     <div class="actions">
       <button id="btnWalk" class="primary" disabled><span class="ico">🚶</span>進入我家<small>第一人稱</small></button>
       <button id="btnOverview" disabled><span class="ico">🏠</span>俯瞰全屋<small>第三人稱</small></button>
@@ -46,6 +53,7 @@
       <li><kbd>N</kbd> 日／夜</li>
       <li><kbd>F</kbd> 全螢幕</li>
     </ul>
+    </div>
   </div>
 </section>
 
@@ -62,12 +70,21 @@
 
 <!-- ============ HUD ============ -->
 <div id="hud" class="hidden">
-  <div id="badge">
-    <div class="floor"><b id="floorNum">8</b><span>F</span></div>
-    <div class="where"><b id="roomName">電梯</b><small id="roomEn">Elevator</small></div>
+  <div id="tl">
+    <div id="badge">
+      <div class="floor"><b id="floorNum">8</b><span>F</span></div>
+      <div class="where"><b id="roomName">電梯</b><small id="roomEn">Elevator</small></div>
+    </div>
+    <div id="memories" class="hidden" title="回憶照片">📷 <b id="memCount">0</b>/<span id="memTotal">10</span></div>
   </div>
-  <div id="memories" class="hidden" title="回憶照片">📷 <b id="memCount">0</b>/<span id="memTotal">10</span></div>
-  <div id="mapWrap"><canvas id="minimap"></canvas></div>
+  <div id="tr">
+  <div id="mapWrap">
+    <canvas id="minimap"></canvas>
+    <button id="mapMin" type="button" title="收起小地圖" aria-label="收起小地圖">−</button>
+  </div>
+  <button id="mapShow" class="round hidden" type="button" title="展開小地圖" aria-label="展開小地圖">🗺️</button>
+  <div id="tools">
+  <button id="menuBtn" class="round" type="button" title="選單" aria-label="選單">☰</button>
   <div id="toolbar">
     <button data-act="view" title="第一／第三人稱 (V)">👁️</button>
     <button data-act="overview" title="俯瞰 (O)">🏠</button>
@@ -77,6 +94,8 @@
     <button data-act="memories" title="回憶模式（需密碼）">📷</button>
     <button data-act="fullscreen" title="全螢幕 (F)">⛶</button>
     <button data-act="sound" title="音效">🔊</button>
+  </div>
+  </div>
   </div>
   <div id="crosshair"></div>
   <div id="prompt" class="hidden"><kbd>E</kbd><span></span></div>
@@ -93,7 +112,8 @@
 <div id="ohud" class="hidden">
   <div class="ohud-card">
     <b>俯瞰模式</b>
-    <span>拖曳旋轉・滾輪縮放・右鍵平移・<em>雙擊地板</em>跳進去走</span>
+    <span class="hint-mouse">拖曳旋轉・滾輪縮放・右鍵平移・<em>雙擊地板</em>跳進去走</span>
+    <span class="hint-touch">單指旋轉・雙指縮放／平移・<em>點兩下地板</em>跳進去走</span>
   </div>
   <div class="ohud-actions">
     <button id="btnCut">✂️ 剖面牆：開</button>
@@ -105,7 +125,7 @@
 <section id="bigmap" class="screen hidden">
   <div class="map-card">
     <canvas id="bigmapCanvas"></canvas>
-    <p>按 <kbd>M</kbd> 或點一下關閉</p>
+    <p><span class="hint-mouse">按 <kbd>M</kbd> 或</span>點一下關閉</p>
   </div>
 </section>
 
@@ -113,7 +133,7 @@
 <section id="photo" class="screen hidden">
   <figure class="photo-card">
     <img alt="">
-    <figcaption><b></b><span></span><small>按任意鍵或點一下繼續</small></figcaption>
+    <figcaption><b></b><span></span><small><span class="hint-mouse">按任意鍵或</span>點一下繼續</small></figcaption>
   </figure>
 </section>
 
@@ -135,8 +155,18 @@
 <div id="touch" class="hidden">
   <div id="stick"><i></i></div>
   <div id="tbtns">
-    <button data-act="use">E</button>
-    <button data-act="jump">⤒</button>
+    <button data-act="jump" aria-label="跳">⤒</button>
+    <button data-act="use" aria-label="互動">E</button>
+  </div>
+</div>
+
+<!-- ============ portrait hint (phones) ============ -->
+<div id="rotate" class="hidden">
+  <div class="rot-card">
+    <div class="rot-phone">📱</div>
+    <b>把手機轉成橫的</b>
+    <span>視野更寬，左手走路、右手看四周</span>
+    <button type="button">先直著玩</button>
   </div>
 </div>
 

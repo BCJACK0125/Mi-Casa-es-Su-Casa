@@ -18,6 +18,7 @@ import { avatar as makeAvatar } from './furn.js';
 const $ = (s) => document.querySelector(s);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 const params = new URLSearchParams(location.search);
+if (isTouch) document.body.classList.add('touch');
 
 // ------------------------------------------------------------------ renderer / scene
 const canvas = $('#view');
@@ -33,6 +34,14 @@ T.setAniso(Math.min(8, renderer.capabilities.getMaxAnisotropy()));
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#0b0d14');
 const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 400);
+// Wide screens (landscape phones) would get a fish-eye horizontal view at 72°; aim for ~100° horizontally.
+function fitFov() {
+  const aspect = innerWidth / innerHeight;
+  const v = 2 * Math.atan(Math.tan((100 * Math.PI / 180) / 2) / aspect) * 180 / Math.PI;
+  camera.fov = Math.min(78, Math.max(56, v));
+  camera.aspect = aspect; camera.updateProjectionMatrix();
+}
+fitFov();
 camera.rotation.order = 'YXZ';
 
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -273,11 +282,18 @@ function setFloor(i, { arrive = false, quiet = false, stairs = 0 } = {}) {
 
 // elevator HTML panel
 const epGrid = $('#elevPanel .ep-grid');
-[['5', '11'], ['4', '10'], ['3', '9'], ['2', '8'], ['1', '7'], ['B1', '6']].flat().forEach((name) => {
-  const b = document.createElement('button'); b.textContent = name; b.dataset.idx = FLOORS.indexOf(name);
-  b.addEventListener('click', (e) => { e.stopPropagation(); elevator.select(+b.dataset.idx); app.audio.click(); });
-  epGrid.appendChild(b);
-});
+// Desktop mirrors the real panel (two tall columns); phones get a two-row strip along the bottom.
+const PANEL_TALL = [['5', '11'], ['4', '10'], ['3', '9'], ['2', '8'], ['1', '7'], ['B1', '6']];
+const PANEL_WIDE = [['6', '7', '8', '9', '10', '11'], ['B1', '1', '2', '3', '4', '5']];
+function buildPanel() {
+  epGrid.innerHTML = '';
+  (isTouch ? PANEL_WIDE : PANEL_TALL).flat().forEach((name) => {
+    const b = document.createElement('button'); b.textContent = name; b.dataset.idx = FLOORS.indexOf(name);
+    b.addEventListener('click', (e) => { e.stopPropagation(); elevator.select(+b.dataset.idx); app.audio.click(); });
+    epGrid.appendChild(b);
+  });
+}
+buildPanel();
 function refreshPanel() {
   epGrid.querySelectorAll('button').forEach((b) => {
     b.classList.toggle('lit', +b.dataset.idx === elevator.target && elevator.target !== elevator.cur);
@@ -329,7 +345,8 @@ function enterWalk(start = false) {
   $('#title').classList.add('hidden'); $('#pause').classList.add('hidden'); $('#ohud').classList.add('hidden');
   $('#hud').classList.remove('hidden');
   $('#touch').classList.toggle('hidden', !isTouch);
-  minimap.resize();
+  setMapHidden(mapHidden);
+  updateRotateHint();
   avatar.visible = app.view === 'tp';
   if (start) {
     // Opening: you start in the lift on 1F with the doors shut; press 8 to go home.
@@ -358,6 +375,7 @@ function enterOverview() {
   house.ceilings.visible = false; shellGroup.visible = false; ground.visible = false; building.setCopiesVisible(false);
   $('#title').classList.add('hidden'); $('#pause').classList.add('hidden'); $('#hud').classList.add('hidden'); $('#touch').classList.add('hidden');
   $('#ohud').classList.remove('hidden');
+  updateRotateHint();
   avatar.visible = true;
   if (player.pos.y > 1 || player.pos.y < -1) player.pos.y = 0;
   flyTo(new THREE.Vector3(player.pos.x + 7, 13, player.pos.z + 9), new THREE.Vector3(5.9, 0, 6.9));
@@ -465,9 +483,9 @@ canvas.addEventListener('click', (e) => {
   if (app.noLock && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return; // was a drag
   if (app.mode === 'walk' && !isTouch) { if (locked || app.noLock) use(); else { $('#pause').classList.add('hidden'); lock(); } }
 });
-canvas.addEventListener('dblclick', (e) => {
-  if (app.mode !== 'overview') return;
-  const ndc = { x: (e.clientX / innerWidth) * 2 - 1, y: -(e.clientY / innerHeight) * 2 + 1 };
+canvas.addEventListener('dblclick', (e) => { if (app.mode === 'overview') jumpInAt(e.clientX, e.clientY); });
+function jumpInAt(cx, cy) {
+  const ndc = { x: (cx / innerWidth) * 2 - 1, y: -(cy / innerHeight) * 2 + 1 };
   const r = new THREE.Raycaster(); r.setFromCamera(ndc, camera);
   const t = -r.ray.origin.y / r.ray.direction.y;
   if (t <= 0) return;
@@ -477,11 +495,21 @@ canvas.addEventListener('dblclick', (e) => {
   player.pos.set(p.x, groundAt(p.x, p.z, 0), p.z);
   for (let i = 0; i < 4; i++) player.collide();
   enterWalk();
-});
+}
 $('#photo').addEventListener('click', closeModal);
 $('#bigmap').addEventListener('click', closeModal);
-$('#btnWalk').addEventListener('click', () => { player.pos.set(5.75, 0, 11.9); player.yaw = -Math.PI / 2; player.pitch = 0; enterWalk(true); });
-$('#btnOverview').addEventListener('click', () => { setFloor(HOME_FLOOR); player.pos.set(5.75, 0, 11.9); player.yaw = -Math.PI / 2; enterOverview(); });
+// Phones: go fullscreen and lock to landscape where the browser allows it (Android); iOS shows a hint instead.
+function tryLandscape() {
+  if (!isTouch) return;
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  const lockO = () => { try { const p = screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'); if (p && p.catch) p.catch(() => {}); } catch (e) { /* unsupported */ } };
+  if (req && !document.fullscreenElement) {
+    try { const p = req.call(el, { navigationUI: 'hide' }); if (p && p.then) p.then(lockO, () => {}); else lockO(); } catch (e) { /* ignore */ }
+  } else lockO();
+}
+$('#btnWalk').addEventListener('click', () => { tryLandscape(); player.pos.set(5.75, 0, 11.9); player.yaw = -Math.PI / 2; player.pitch = 0; enterWalk(true); });
+$('#btnOverview').addEventListener('click', () => { tryLandscape(); setFloor(HOME_FLOOR); player.pos.set(5.75, 0, 11.9); player.yaw = -Math.PI / 2; enterOverview(); });
 $('#btnResume').addEventListener('click', () => enterWalk());
 $('#btnPauseOverview').addEventListener('click', () => enterOverview());
 $('#btnEnter').addEventListener('click', () => enterWalk());
@@ -501,30 +529,75 @@ $('#toolbar').addEventListener('click', (e) => {
   if (a === 'fullscreen') toggleFullscreen();
   if (a === 'memories') { openLock(); if (modal === 'lock') return; }
   if (a === 'sound') { app.audio.setMuted(!app.audio.muted); b.textContent = app.audio.muted ? '🔇' : '🔊'; }
+  if (isTouch && a !== 'sound' && a !== 'quality') $('#tools').classList.remove('open');
   if (!isTouch && app.mode === 'walk' && !modal) lock();
 });
+$('#menuBtn').addEventListener('click', (e) => { e.stopPropagation(); $('#tools').classList.toggle('open'); });
+
+// minimap: collapse / expand (remembered), tap the map on phones to open the big map
+let mapHidden = false;
+try { mapHidden = localStorage.getItem('micasa-map') === 'hidden'; } catch (e) { /* ignore */ }
+function setMapHidden(h) {
+  mapHidden = h;
+  $('#mapWrap').classList.toggle('hidden', h); $('#mapShow').classList.toggle('hidden', !h);
+  try { localStorage.setItem('micasa-map', h ? 'hidden' : 'shown'); } catch (e) { /* ignore */ }
+  if (!h) minimap.resize();
+}
+$('#mapMin').addEventListener('click', (e) => { e.stopPropagation(); setMapHidden(true); });
+$('#mapShow').addEventListener('click', (e) => { e.stopPropagation(); setMapHidden(false); });
+$('#minimap').addEventListener('click', () => { if (isTouch) toggleBigMap(); });
+
+// portrait hint on phones
+let rotateDismissed = false;
+const portrait = matchMedia('(orientation: portrait)');
+function updateRotateHint() {
+  const show = isTouch && portrait.matches && app.mode !== 'title' && !rotateDismissed && !modal;
+  $('#rotate').classList.toggle('hidden', !show);
+}
+$('#rotate button').addEventListener('click', () => { rotateDismissed = true; updateRotateHint(); });
 
 // touch: joystick + drag-to-look + buttons
 if (isTouch) {
+  // Left ~40% of the screen: a joystick appears wherever the thumb lands.
+  // Right side: drag to look, tap to interact.
   const stick = $('#stick'), knob = $('#stick i');
-  let sid = null, sx = 0, sy = 0;
-  stick.addEventListener('pointerdown', (e) => { sid = e.pointerId; sx = e.clientX; sy = e.clientY; stick.setPointerCapture(sid); });
-  stick.addEventListener('pointermove', (e) => {
-    if (e.pointerId !== sid) return;
-    let dx = (e.clientX - sx) / 50, dy = (e.clientY - sy) / 50; const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
-    player.joy.set(dx, dy); knob.style.transform = `translate(${dx * 36}px, ${dy * 36}px)`;
+  const R = 46;
+  let sid = null, sx = 0, sy = 0, lid = null, lx = 0, ly = 0, moved = 0, lastTap = 0, tapX = 0, tapY = 0;
+  const homeStick = () => { stick.classList.remove('active'); stick.style.left = ''; stick.style.top = ''; knob.style.transform = ''; };
+  canvas.addEventListener('pointerdown', (e) => {
+    $('#tools').classList.remove('open');
+    if (app.mode !== 'walk' || modal) return;
+    if (e.clientX < innerWidth * 0.4 && sid === null) {
+      sid = e.pointerId; sx = e.clientX; sy = e.clientY;
+      stick.classList.add('active'); stick.style.left = `${sx}px`; stick.style.top = `${sy}px`;
+      canvas.setPointerCapture(sid);
+    } else if (lid === null) {
+      lid = e.pointerId; lx = e.clientX; ly = e.clientY; moved = 0;
+      canvas.setPointerCapture(lid);
+    }
   });
-  const end = (e) => { if (e.pointerId !== sid) return; sid = null; player.joy.set(0, 0); knob.style.transform = ''; };
-  stick.addEventListener('pointerup', end); stick.addEventListener('pointercancel', end);
-  let lid = null, lx = 0, ly = 0, moved = 0;
-  canvas.addEventListener('pointerdown', (e) => { if (app.mode !== 'walk' || lid !== null) return; lid = e.pointerId; lx = e.clientX; ly = e.clientY; moved = 0; });
   canvas.addEventListener('pointermove', (e) => {
-    if (e.pointerId !== lid) return;
-    const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
-    player.look(dx * 0.006, dy * 0.006);
+    if (e.pointerId === sid) {
+      let dx = (e.clientX - sx) / R, dy = (e.clientY - sy) / R; const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+      player.joy.set(dx, dy); knob.style.transform = `translate(${dx * R * 0.75}px, ${dy * R * 0.75}px)`;
+    } else if (e.pointerId === lid) {
+      const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
+      const k = 5.2 / Math.max(innerWidth, innerHeight);       // ~ one screen width = 300°
+      player.look(dx * k, dy * k);
+    }
   });
-  const lend = (e) => { if (e.pointerId !== lid) return; lid = null; if (moved < 8) use(); };
-  canvas.addEventListener('pointerup', lend); canvas.addEventListener('pointercancel', lend);
+  const end = (e) => {
+    if (e.pointerId === sid) { sid = null; player.joy.set(0, 0); homeStick(); }
+    if (e.pointerId === lid) { lid = null; if (moved < 8 && e.type === 'pointerup') use(); }
+  };
+  canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+  // overview: double-tap the floor to jump in
+  canvas.addEventListener('pointerup', (e) => {
+    if (app.mode !== 'overview') return;
+    const now = performance.now();
+    if (now - lastTap < 320 && Math.hypot(e.clientX - tapX, e.clientY - tapY) < 30) { lastTap = 0; jumpInAt(e.clientX, e.clientY); }
+    else { lastTap = now; tapX = e.clientX; tapY = e.clientY; }
+  });
   $('#tbtns').addEventListener('pointerdown', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.act === 'use') use();
@@ -533,7 +606,8 @@ if (isTouch) {
 }
 
 addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  fitFov();
+  updateRotateHint();
   renderer.setSize(innerWidth, innerHeight);
   if (composer) { composer.setSize(innerWidth, innerHeight); }
   minimap.resize(); if (modal === 'map') bigmap.resize();
@@ -599,6 +673,8 @@ function frame(now) {
     }
     const inCar = elevator.inCar(player.pos);
     $('#elevPanel').classList.toggle('hidden', !inCar);
+    document.body.classList.toggle('in-car', inCar);
+    if (isTouch) $('#tbtns [data-act="use"]').classList.toggle('ready', !!target);
     if (inCar) refreshPanel();
   } else if (app.mode === 'overview') {
     if (fly) {
