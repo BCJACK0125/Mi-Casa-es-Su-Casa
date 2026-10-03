@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Mi Casa es Su Casa</title>
+<meta name="description" content="用 3D 重建的我家：第一人稱走逛、第三人稱俯瞰，搭電梯或走樓梯，不管到哪一層都會回到家。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<!-- ============ title screen ============ -->
+<section id="title" class="screen">
+  <div class="title-card">
+    <p class="eyebrow">6F · 我家 3D 重建</p>
+    <h1>Mi Casa<br><span>es Su Casa</span></h1>
+    <p class="lede">我家就是你家。推開鐵門走進來看看——搭電梯或走樓梯都行，<br>只是不管到了哪一層，打開門都還是這個家。</p>
+    <div class="actions">
+      <button id="btnWalk" class="primary" disabled><span class="ico">🚶</span>進入我家<small>第一人稱</small></button>
+      <button id="btnOverview" disabled><span class="ico">🏠</span>俯瞰全屋<small>第三人稱</small></button>
+    </div>
+    <div id="loading"><div class="bar"><i></i></div><span>正在搬家具…</span></div>
+    <ul class="keys">
+      <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移動</li>
+      <li><kbd>滑鼠</kbd> 轉頭</li>
+      <li><kbd>E</kbd> 互動／開門</li>
+      <li><kbd>Shift</kbd> 跑</li>
+      <li><kbd>V</kbd> 第一／第三人稱</li>
+      <li><kbd>O</kbd> 俯瞰</li>
+      <li><kbd>M</kbd> 大地圖</li>
+      <li><kbd>N</kbd> 日／夜</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ pause ============ -->
+<section id="pause" class="screen hidden">
+  <div class="title-card small">
+    <h2>暫停</h2>
+    <div class="actions">
+      <button id="btnResume" class="primary"><span class="ico">▶</span>繼續逛</button>
+      <button id="btnPauseOverview"><span class="ico">🏠</span>俯瞰全屋</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div id="badge">
+    <div class="floor"><b id="floorNum">6</b><span>F</span></div>
+    <div class="where"><b id="roomName">電梯</b><small id="roomEn">Elevator</small></div>
+  </div>
+  <div id="memories" title="回憶照片">📷 <b id="memCount">0</b>/<span id="memTotal">10</span></div>
+  <div id="mapWrap"><canvas id="minimap"></canvas></div>
+  <div id="toolbar">
+    <button data-act="view" title="第一／第三人稱 (V)">👁️</button>
+    <button data-act="overview" title="俯瞰 (O)">🏠</button>
+    <button data-act="map" title="大地圖 (M)">🗺️</button>
+    <button data-act="daynight" title="日／夜 (N)">🌙</button>
+    <button data-act="quality" title="畫質">✨</button>
+    <button data-act="sound" title="音效">🔊</button>
+  </div>
+  <div id="crosshair"></div>
+  <div id="prompt" class="hidden"><kbd>E</kbd><span></span></div>
+  <div id="area"><b></b><small></small></div>
+  <div id="toasts"></div>
+  <div id="elevPanel" class="hidden">
+    <div class="ep-head">MITSUBISHI · 10 人</div>
+    <div class="ep-grid"></div>
+    <div class="ep-foot">點樓層或按數字鍵（0=10、-=11、B=B1）</div>
+  </div>
+</div>
+
+<!-- ============ overview HUD ============ -->
+<div id="ohud" class="hidden">
+  <div class="ohud-card">
+    <b>俯瞰模式</b>
+    <span>拖曳旋轉・滾輪縮放・右鍵平移・<em>雙擊地板</em>跳進去走</span>
+  </div>
+  <div class="ohud-actions">
+    <button id="btnCut">✂️ 剖面牆：開</button>
+    <button id="btnEnter" class="primary">🚶 進入走逛</button>
+  </div>
+</div>
+
+<!-- ============ big map ============ -->
+<section id="bigmap" class="screen hidden">
+  <div class="map-card">
+    <canvas id="bigmapCanvas"></canvas>
+    <p>按 <kbd>M</kbd> 或點一下關閉</p>
+  </div>
+</section>
+
+<!-- ============ memory photo ============ -->
+<section id="photo" class="screen hidden">
+  <figure class="photo-card">
+    <img alt="">
+    <figcaption><b></b><span></span><small>按任意鍵或點一下繼續</small></figcaption>
+  </figure>
+</section>
+
+<!-- ============ touch controls ============ -->
+<div id="touch" class="hidden">
+  <div id="stick"><i></i></div>
+  <div id="tbtns">
+    <button data-act="use">E</button>
+    <button data-act="jump">⤒</button>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
