@@ -24,7 +24,7 @@ export function buildHouse(scene) {
 
   // ------------------------------------------------------------------ floors & ceilings
   slab(L, Lc, [1.3, 3.5, 0, 2.3], M.floorBath, M.pvc, { ch: 2.4 });
-  slab(L, Lc, [3.9, 5.95, 0, 2.3], M.floorGrey, M.pvc, { ch: 2.4 });
+  slab(L, Lc, [3.9, 5.95, 0, 2.3], M.floorBath, M.pvc, { ch: 2.4 });
   slab(L, Lc, [1.3, 4.95, 2.3, 6.1], M.floor60, M.ceiling);
   slab(L, Lc, [4.95, 5.95, 2.3, 10.1], M.floor60, M.ceiling, { ch: 2.7 });
   slab(L, Lc, [1.3, 4.95, 6.1, 10.1], M.floor60, M.ceiling);
@@ -33,39 +33,41 @@ export function buildHouse(scene) {
   box(L, M.wood, 5.95, 11, 0, 0.06, 3.68, 6.52);
   box(Lc, M.ceiling, 5.95, 11, H, H + 0.02, 3.68, 6.52);
   slab(L, Lc, [5.95, 11, 6.52, 10.7], M.floor60, M.ceiling);
-  slab(L, Lc, [2.6, 5.1, 10.1, 13.4], M.floorGrey, M.wallTile, { ch: 2.5 });
+  slab(L, Lc, [0, 3.75, 10.1, 12.5], M.floorGrey, M.wallTile, { ch: 2.5 });
   // fill the step riser at the room-2 doorway
   box(L, M.wood, 5.95, 6.0, 0, 0.06, 3.8, 4.6);
 
   // ------------------------------------------------------------------ walls
   const ext = 0.2;
   // horizontal (along x)
-  wall(L, { axis: 'x', at: 0, from: 1.2, to: 6.05, t: ext, neg: F.ext, pos: F.tile, openings: [{ c: 4.45, w: 0.7, y0: 1.5, y1: 2.1, frame: false }] });
+  wall(L, { axis: 'x', at: 0, from: 1.2, to: 6.05, t: ext, neg: F.ext, pos: F.tile });
   wall(L, { axis: 'x', at: 2.3, from: 1.3, to: 3.5, neg: F.tile, pos: F.paint, openings: [{ c: 3.025, w: 0.75 }] });
-  wall(L, { axis: 'x', at: 2.3, from: 3.9, to: 5.95, neg: F.tileBeige, pos: F.paint, openings: [{ c: 5.45, w: 0.78 }] });
+  wall(L, { axis: 'x', at: 2.3, from: 3.9, to: 5.95, neg: F.tile, pos: F.paint, openings: [{ c: 5.45, w: 0.78 }] });
   wall(L, { axis: 'x', at: 2.3, from: 3.5, to: 3.9, neg: F.paint, pos: F.paint });
   wall(L, { axis: 'x', at: 6.1, from: -0.1, to: 1.3, t: ext, neg: F.ext, pos: F.balc });
   wall(L, { axis: 'x', at: 6.1, from: 1.3, to: 4.95, neg: F.paint, pos: F.paint });
-  wall(L, { axis: 'x', at: 10.1, from: -0.1, to: 1.3, t: ext, neg: F.balc, pos: F.ext });
-  wall(L, { axis: 'x', at: 10.1, from: 1.3, to: 5.1, neg: F.paint, pos: F.tile, openings: [{ c: 3.15, w: 0.8 }] });
+  wall(L, { axis: 'x', at: 10.1, from: -0.1, to: 1.3, t: ext, neg: F.balc, pos: F.tile });
+  wall(L, { axis: 'x', at: 10.1, from: 1.3, to: 3.75, neg: F.paint, pos: F.tile, openings: [{ c: 3.15, w: 0.8 }] });
+  wall(L, { axis: 'x', at: 10.1, from: 3.75, to: 5.1, neg: F.paint, pos: F.paint });
   wall(L, { axis: 'x', at: 0.6, from: 5.95, to: 11.1, t: ext, neg: F.ext, pos: F.paintBlue });
   wall(L, { axis: 'x', at: 3.68, from: 5.95, to: 11, neg: F.paintBlue, pos: F.paint });
   wall(L, { axis: 'x', at: 6.52, from: 5.95, to: 11, neg: F.paint, pos: F.paint });
-  wall(L, { axis: 'x', at: 13.4, from: 2.5, to: 5.1, t: ext, neg: F.tile, pos: F.ext, openings: [{ c: 4.3, w: 0.8, y0: 1.15, y1: 1.95, frame: false }] });
+  wall(L, { axis: 'x', at: 12.5, from: -0.1, to: 3.85, t: ext, neg: F.tile, pos: F.ext });
   // vertical (along z)
   wall(L, { axis: 'z', at: 1.3, from: -0.1, to: 2.3, t: ext, neg: F.ext, pos: F.tile, openings: [{ c: 0.85, w: 0.9, y0: 1.35, y1: 2.05, frame: false }] });
   wall(L, { axis: 'z', at: 1.3, from: 2.3, to: 6.1, t: ext, neg: F.ext, pos: F.paint, openings: [{ c: 4.05, w: 0.9, y0: 0.9, y1: 2.2, frame: false }] });
   wall(L, { axis: 'z', at: 1.3, from: 6.1, to: 10.1, t: ext, neg: F.balc, pos: F.paint, openings: [{ c: 8.1, w: 2.2, y0: 0, y1: 2.55, frame: false }] });
   box(L, M.paint, 3.5, 3.9, 0, H, 0, 2.3, { solid: true });                 // pipe shaft between baths
   wall(L, { axis: 'z', at: 3.5, from: 0, to: 2.3, t: 0.02, neg: F.tile, pos: F.paint });
-  wall(L, { axis: 'z', at: 3.9, from: 0, to: 2.3, t: 0.02, neg: F.paint, pos: F.tileBeige });
+  wall(L, { axis: 'z', at: 3.9, from: 0, to: 2.3, t: 0.02, neg: F.paint, pos: F.tile });
   wall(L, { axis: 'z', at: 4.95, from: 2.3, to: 6.1, neg: F.paint, pos: F.paint, openings: [{ c: 2.875, w: 0.85 }] });
-  wall(L, { axis: 'z', at: 5.95, from: 0, to: 2.3, neg: F.tileBeige, pos: F.ext });
+  wall(L, { axis: 'z', at: 5.95, from: 0, to: 2.3, neg: F.tile, pos: F.ext });
   wall(L, { axis: 'z', at: 5.95, from: 2.3, to: 6.52, neg: F.paint, pos: F.paintBlue, openings: [{ c: 3.2, w: 0.8 }, { c: 4.2, w: 0.8 }] });
   wall(L, { axis: 'z', at: 5.95, from: 6.52, to: 10.7, neg: F.panel, pos: F.panel, openings: [
     { c: 7.95, w: 1.8, y0: 0.95, y1: 2.0, frame: true, frameMat: M.black }, { c: 9.6, w: 0.9, y0: 0, y1: 2.15 }] });
-  wall(L, { axis: 'z', at: 2.6, from: 10.1, to: 13.4, t: ext, neg: F.ext, pos: F.tile });
-  wall(L, { axis: 'z', at: 5.1, from: 10.1, to: 13.4, neg: F.tile, pos: F.paint });
+  wall(L, { axis: 'z', at: 0, from: 10.0, to: 12.6, t: ext, neg: F.ext, pos: F.tile, openings: [{ c: 11.35, w: 0.8, y0: 1.15, y1: 1.95, frame: false }] });
+  wall(L, { axis: 'z', at: 3.75, from: 10.1, to: 12.5, neg: F.tile, pos: F.paint });
+  box(L, M.paintWarm, 3.81, 5.1, 0, H, 10.16, 13.4, { solid: true });      // solid core between kitchen and lift shaft
   wall(L, { axis: 'z', at: 11, from: 0.5, to: 10.8, t: ext, neg: F.paint, pos: F.ext, openings: [
     { c: 1.25, w: 0.7, y0: 1.3, y1: 1.9, frame: false }, { c: 2.6, w: 1.5, y0: 0, y1: 2.15, frame: false },
     { c: 5.0, w: 0.85, y0: 1.0, y1: 2.1, frame: false }, { c: 9.3, w: 1.8, y0: 0, y1: 2.15, frame: false }] });
@@ -81,8 +83,7 @@ export function buildHouse(scene) {
   windowUnit(L, { axis: 'z', at: 1.3, c: 4.05, w: 0.9, y0: 0.9, y1: 2.2 });
   windowUnit(L, { axis: 'z', at: 1.3, c: 8.1, w: 2.2, y0: 0, y1: 2.15 });
   windowUnit(L, { axis: 'z', at: 1.3, c: 8.1, w: 2.2, y0: 2.15, y1: 2.55, panes: 3, sill: false });
-  windowUnit(L, { axis: 'x', at: 0, c: 4.45, w: 0.7, y0: 1.5, y1: 2.1, glass: M.glassFrost });
-  windowUnit(L, { axis: 'x', at: 13.4, c: 4.3, w: 0.8, y0: 1.15, y1: 1.95 });
+  windowUnit(L, { axis: 'z', at: 0, c: 11.35, w: 0.8, y0: 1.15, y1: 1.95 });
   windowUnit(L, { axis: 'z', at: 11, c: 1.25, w: 0.7, y0: 1.3, y1: 1.9, glass: M.glassFrost });
   windowUnit(L, { axis: 'z', at: 11, c: 2.6, w: 1.5, y0: 0, y1: 2.15 });
   windowUnit(L, { axis: 'z', at: 11, c: 5.0, w: 0.85, y0: 1.0, y1: 2.1 });
@@ -100,34 +101,31 @@ export function buildHouse(scene) {
   door({ hinge: [5.95, 3.8], dir: [0, 1], swing: [1, 0], width: 0.8, mat: M.door, open: true, name: '房間二門' });
   door({ hinge: [3.55, 10.1], dir: [-1, 0], swing: [0, 1], width: 0.8, mat: M.door, open: true, name: '廚房門' });
 
-  // ------------------------------------------------------------------ MASTER BATHROOM
-  place(L, Fu.bathtub({ l: 1.55, w: 0.72 }), 1.76, 0.875, 0, { solid: [0.72, 1.55, 0.55], shadow: false });
-  box(L, M.wallTile, 1.4, 2.12, 0, 0.55, 1.65, 2.24, { solid: true });
-  place(L, Fu.basket('#f2c81f'), 1.65, 1.95, 0, { y: 0.55 });
-  place(L, Fu.pedestalSink(), 2.45, 0.32, S, { solid: [0.5, 0.4, 0.86] });
-  box(L, M.white, 2.15, 2.75, 1.5, 2.05, 0.1, 0.12);
-  L.add(plane(M.mirror, 0.42, 0.45, 2.4, 1.78, 0.125));
-  box(L, M.black, 2.15, 2.75, 1.22, 1.25, 0.1, 0.22);
-  place(L, Fu.toilet(), 3.12, 0.45, S, { solid: [0.45, 0.65, 0.8] });
-  box(L, M.pine, 3.26, 3.5, 1.85, 1.88, 0.5, 1.2);
-  place(L, Fu.bag('#3a6ea5', 0.08, 0.25), 3.38, 0.7, E, { y: 1.88 });
-  place(L, Fu.bag('#efe6d0', 0.3, 0.12), 3.38, 1.0, E, { y: 1.88 });
-  box(L, M.chrome, 1.5, 2.0, 1.35, 1.37, 2.2, 2.23);
-  box(L, M.white, 1.6, 1.9, 0.9, 1.35, 2.2, 2.215);
-  place(L, Fu.domeLight(0.13), 2.4, 1.1, 0, { y: 2.4 });
-  light('mbath', 2.4, 2.15, 1.1, { color: '#fff3dc', intensity: 3.2, distance: 4 });
-
-  // ------------------------------------------------------------------ BATH 2 (hallway end)
-  place(L, Fu.toilet(), 5.45, 0.45, S, { solid: [0.45, 0.65, 0.8] });
-  place(L, Fu.pedestalSink(), 4.1, 1.55, E, { solid: [0.5, 0.4, 0.86] });
-  L.add(plane(M.mirror, 0.45, 0.5, 3.92, 1.75, 1.55, E));
-  box(L, M.wallTileBeige, 3.9, 4.85, 0, 0.08, 0.1, 1.05);
-  Lc.add(cbox(M.chrome, 0.02, 0.02, 0.95, 4.85, 2.05, 0.575));
-  { const c = Fu.curtain(colorMat('#cfe3ef'), 0.9, 1.75, 6); c.position.set(4.85, 2.05, 0.6); c.rotation.y = E; c.updateMatrixWorld(true); c.traverse((o) => o.isMesh && L.add(o)); }
-  box(L, M.chrome, 4.1, 4.14, 1.2, 1.95, 0.1, 0.14);
-  place(L, Fu.basket('#4aa3df'), 4.3, 0.5, 0);
-  place(L, Fu.domeLight(0.13), 4.9, 1.2, 0, { y: 2.4 });
-  light('bath2', 4.9, 2.15, 1.2, { color: '#fff3dc', intensity: 3.2, distance: 4 });
+  // ------------------------------------------------------------------ BATHROOMS
+  // Both share the same layout (west face wx, east face ex): tub along the west wall,
+  // pedestal sink + mirror on the north wall, toilet in the NE corner, shelf above it.
+  // The hallway one has no window.
+  const bathroom = (id, wx, ex) => {
+    place(L, Fu.bathtub({ l: 1.55, w: 0.72 }), wx + 0.36, 0.875, 0, { solid: [0.72, 1.55, 0.55], shadow: false });
+    box(L, M.wallTile, wx, wx + 0.72, 0, 0.55, 1.65, 2.24, { solid: true });
+    place(L, Fu.basket('#f2c81f'), wx + 0.25, 1.95, 0, { y: 0.55 });
+    const sx = (wx + 0.72 + ex - 0.6) / 2;
+    place(L, Fu.pedestalSink(), sx, 0.32, S, { solid: [0.5, 0.4, 0.86] });
+    box(L, M.white, sx - 0.3, sx + 0.3, 1.5, 2.05, 0.1, 0.12);
+    L.add(plane(M.mirror, 0.42, 0.45, sx - 0.05, 1.78, 0.125));
+    box(L, M.black, sx - 0.3, sx + 0.3, 1.22, 1.25, 0.1, 0.22);
+    place(L, Fu.toilet(), ex - 0.38, 0.45, S, { solid: [0.45, 0.65, 0.8] });
+    box(L, M.pine, ex - 0.24, ex, 1.85, 1.88, 0.5, 1.2);
+    place(L, Fu.bag('#3a6ea5', 0.08, 0.25), ex - 0.12, 0.7, E, { y: 1.88 });
+    place(L, Fu.bag('#efe6d0', 0.3, 0.12), ex - 0.12, 1.0, E, { y: 1.88 });
+    box(L, M.chrome, wx + 0.1, wx + 0.6, 1.35, 1.37, 2.2, 2.23);
+    box(L, M.white, wx + 0.2, wx + 0.5, 0.9, 1.35, 2.2, 2.215);
+    const cx = (wx + ex) / 2;
+    place(L, Fu.domeLight(0.13), cx, 1.1, 0, { y: 2.4 });
+    light(id, cx, 2.15, 1.1, { color: '#fff3dc', intensity: 3.2, distance: 4 });
+  };
+  bathroom('mbath', 1.4, 3.5);
+  bathroom('bath2', 3.91, 5.89);
 
   // ------------------------------------------------------------------ MASTER BEDROOM
   place(L, Fu.bed({ w: 1.5, l: 2.0, frame: M.honey, sheet: '#7387b4' }), 2.6, 5.25, E, { solid: [1.7, 2.3, 0.5] });
@@ -263,16 +261,18 @@ export function buildHouse(scene) {
   // slippers by the door
   for (const [x, z] of [[7.0, 10.1], [7.15, 10.05], [8.05, 9.95]]) box(L, cm('#e9a99a', 0.6), x, x + 0.1, 0, 0.03, z, z + 0.26);
 
-  // ------------------------------------------------------------------ KITCHEN
-  place(L, Fu.counterKitchen({ len: 2.75 }), 4.73, 11.83, W, { solid: [2.75, 0.62, 0.9] });
-  place(L, Fu.wireRack({ w: 0.9, d: 0.45, h: 1.6 }), 2.93, 12.6, E, { solid: [0.9, 0.45, 1.6] });
-  place(L, Fu.wireRack({ w: 0.5, d: 0.4, h: 0.55, levels: 2 }), 2.92, 11.55, E, { solid: [0.5, 0.4, 0.55] });
-  place(L, Fu.riceCooker(), 2.92, 11.55, E, { y: 0.56 });
-  box(L, cm('#6a2c8f', 0.8), 2.71, 2.73, 0.75, 1.55, 10.55, 10.95);
-  box(L, cm('#e5c23c', 0.6), 2.73, 2.735, 1.1, 1.3, 10.6, 10.9);
-  place(L, Fu.stool(), 4.2, 10.6, 0, { solid: [0.3, 0.3, 0.45] });
-  place(L, Fu.domeLight(0.14, M.bulbCool), 3.85, 11.8, 0, { y: 2.5 });
-  light('kitchen', 3.85, 2.25, 11.8, { color: '#f4f6ff', intensity: 4, distance: 5 });
+  // ------------------------------------------------------------------ KITCHEN (east-west galley)
+  // Door at the east end of the north wall; counter along the south wall with the stove
+  // and hood towards the west window; wire rack, rice cooker and apron on the north wall.
+  place(L, Fu.counterKitchen({ len: 2.75 }), 1.5, 12.09, N, { solid: [2.75, 0.62, 0.9] });
+  place(L, Fu.wireRack({ w: 0.9, d: 0.45, h: 1.6 }), 0.62, 10.39, S, { solid: [0.9, 0.45, 1.6] });
+  place(L, Fu.wireRack({ w: 0.5, d: 0.4, h: 0.55, levels: 2 }), 1.45, 10.37, S, { solid: [0.5, 0.4, 0.55] });
+  place(L, Fu.riceCooker(), 1.45, 10.37, S, { y: 0.56 });
+  box(L, cm('#6a2c8f', 0.8), 2.15, 2.55, 0.75, 1.55, 10.16, 10.18);
+  box(L, cm('#e5c23c', 0.6), 2.2, 2.5, 1.1, 1.3, 10.18, 10.185);
+  place(L, Fu.stool(), 3.45, 11.55, 0, { solid: [0.3, 0.3, 0.45] });
+  place(L, Fu.domeLight(0.14, M.bulbCool), 1.9, 11.3, 0, { y: 2.5 });
+  light('kitchen', 1.9, 2.25, 11.3, { color: '#f4f6ff', intensity: 4, distance: 5 });
 
   // outside the windows
   scene.add(L.bake());

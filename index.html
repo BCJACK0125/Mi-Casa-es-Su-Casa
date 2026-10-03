@@ -30,6 +30,10 @@
       <button id="btnWalk" class="primary" disabled><span class="ico">🚶</span>進入我家<small>第一人稱</small></button>
       <button id="btnOverview" disabled><span class="ico">🏠</span>俯瞰全屋<small>第三人稱</small></button>
     </div>
+    <div class="extras">
+      <button id="btnMemTitle" type="button">🔒 回憶模式</button>
+      <button id="btnFsTitle" type="button">⛶ 全螢幕</button>
+    </div>
     <div id="loading"><div class="bar"><i></i></div><span>正在搬家具…</span></div>
     <ul class="keys">
       <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移動</li>
@@ -40,6 +44,7 @@
       <li><kbd>O</kbd> 俯瞰</li>
       <li><kbd>M</kbd> 大地圖</li>
       <li><kbd>N</kbd> 日／夜</li>
+      <li><kbd>F</kbd> 全螢幕</li>
     </ul>
   </div>
 </section>
@@ -61,7 +66,7 @@
     <div class="floor"><b id="floorNum">6</b><span>F</span></div>
     <div class="where"><b id="roomName">電梯</b><small id="roomEn">Elevator</small></div>
   </div>
-  <div id="memories" title="回憶照片">📷 <b id="memCount">0</b>/<span id="memTotal">10</span></div>
+  <div id="memories" class="hidden" title="回憶照片">📷 <b id="memCount">0</b>/<span id="memTotal">10</span></div>
   <div id="mapWrap"><canvas id="minimap"></canvas></div>
   <div id="toolbar">
     <button data-act="view" title="第一／第三人稱 (V)">👁️</button>
@@ -69,6 +74,8 @@
     <button data-act="map" title="大地圖 (M)">🗺️</button>
     <button data-act="daynight" title="日／夜 (N)">🌙</button>
     <button data-act="quality" title="畫質">✨</button>
+    <button data-act="memories" title="回憶模式（需密碼）">📷</button>
+    <button data-act="fullscreen" title="全螢幕 (F)">⛶</button>
     <button data-act="sound" title="音效">🔊</button>
   </div>
   <div id="crosshair"></div>
@@ -108,6 +115,20 @@
     <img alt="">
     <figcaption><b></b><span></span><small>按任意鍵或點一下繼續</small></figcaption>
   </figure>
+</section>
+
+<!-- ============ memory-mode password ============ -->
+<section id="lock" class="screen hidden">
+  <form class="title-card small lock-card" autocomplete="off">
+    <h2>🔒 回憶模式</h2>
+    <p class="lede">屋子裡藏著 10 台 📷，每一台都是當初實地拍下的照片。輸入密碼開啟尋寶模式。</p>
+    <input type="password" name="pw" placeholder="密碼" autocomplete="off" spellcheck="false">
+    <p class="err" aria-live="polite"></p>
+    <div class="actions">
+      <button type="button" data-act="cancel">取消</button>
+      <button type="submit" class="primary">解鎖</button>
+    </div>
+  </form>
 </section>
 
 <!-- ============ touch controls ============ -->

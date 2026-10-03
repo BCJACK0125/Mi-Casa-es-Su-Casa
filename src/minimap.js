@@ -14,7 +14,7 @@ export class Minimap {
     this.w = r.width; this.h = r.height;
     this.c.width = r.width * this.dpr; this.c.height = r.height * this.dpr;
   }
-  draw({ x, z, yaw, room, floor, found, onStairs, pulse }) {
+  draw({ x, z, yaw, room, found, showMem, pulse }) {
     const g = this.g, W = this.w, Hh = this.h;
     if (!W) return;
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -51,7 +51,7 @@ export class Minimap {
       else g.fillText(r.name, X, Z);
     }
     // memories not yet found
-    for (const m of MEMORIES) {
+    for (const m of showMem ? MEMORIES : []) {
       if (found && found.has(m.id)) continue;
       const [X, Z] = P(m.x, m.z);
       g.fillStyle = `rgba(255,190,60,${0.55 + 0.45 * Math.sin(pulse * 3)})`;

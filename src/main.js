@@ -76,7 +76,7 @@ ground.rotation.x = -Math.PI / 2; ground.position.set(6, -18.5, 7); scene.add(gr
 const shell = new Layer('shell');
 const shellMat = new THREE.MeshStandardMaterial({ map: T.tiles({ tileW: 0.12, tileH: 0.06, nx: 8, ny: 12, base: '#c8b49a', grout: '#9d8b74', gw: 2, vary: 0.08 }), roughness: 0.8 });
 shellMat.userData.worldUV = true;
-for (const [x0, x1, z0, z1] of [[-0.12, 11.12, 0.48, 10.1], [1.2, 6.07, -0.12, 0.6], [2.5, 5.1, 10.1, 13.52]]) {
+for (const [x0, x1, z0, z1] of [[-0.12, 11.12, 0.48, 10.1], [1.2, 6.07, -0.12, 0.6], [-0.12, 3.85, 10.1, 12.6], [3.75, 5.1, 10.1, 13.52]]) {
   box(shell, shellMat, x0, x1, -18.4, -0.25, z0, z1);
   box(shell, shellMat, x0, x1, 2.86, 20, z0, z1);
 }
@@ -124,11 +124,79 @@ const memSprites = MEMORIES.map((m, i) => {
   return s;
 });
 $('#memTotal').textContent = MEMORIES.length;
+
+// Memory mode is an optional extra, off by default and unlocked with a password
+// (compared as a SHA-256 hash; it is a game gate, not real access control).
+const MEM_HASH = '93c7707fc6392a8bce4cc180ed6572ab7b436d0923ceb01f8c50f74d7948fc66';
+let memUnlocked = false;
+try { memUnlocked = sessionStorage.getItem('micasa-mem') === '1'; } catch (e) { /* ignore */ }
+function setMemMode(on) {
+  app.memMode = on;
+  memSprites.forEach((s) => (s.visible = on));
+  $('#memories').classList.toggle('hidden', !on);
+  document.querySelector('[data-act="memories"]').classList.toggle('on', on);
+  $('#btnMemTitle').classList.toggle('on', on);
+  $('#btnMemTitle').textContent = on ? '📷 回憶模式：開' : '🔒 回憶模式';
+}
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+function openLock() {
+  if (memUnlocked) { setMemMode(!app.memMode); toast(app.memMode ? '回憶模式開啟：找找屋子裡的 📷' : '回憶模式關閉'); return; }
+  modal = 'lock';
+  if (document.pointerLockElement) document.exitPointerLock();
+  player.keys.clear();
+  const f = $('#lock form');
+  f.querySelector('.err').textContent = ''; f.pw.value = '';
+  $('#lock').classList.remove('hidden');
+  setTimeout(() => f.pw.focus(), 50);
+}
+$('#lock form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.currentTarget;
+  let ok = false;
+  try { ok = (await sha256(f.pw.value.trim())) === MEM_HASH; } catch (err) { f.querySelector('.err').textContent = '這個瀏覽器無法驗證密碼（需要 HTTPS）。'; return; }
+  if (!ok) {
+    f.querySelector('.err').textContent = '密碼不對喔，再試一次。';
+    f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake');
+    f.pw.select();
+    return;
+  }
+  memUnlocked = true;
+  try { sessionStorage.setItem('micasa-mem', '1'); } catch (err) { /* ignore */ }
+  closeModal();
+  setMemMode(true);
+  app.audio.init(); app.audio.chime();
+  toast(`回憶模式開啟：屋子裡藏了 ${MEMORIES.length} 台 📷，找到後按 E 看照片`);
+  if (app.mode === 'walk') lock();
+});
+$('#lock [data-act="cancel"]').addEventListener('click', () => { closeModal(); if (app.mode === 'walk') lock(); });
+
+// fullscreen
+const fsSupported = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+function toggleFullscreen() {
+  const el = document.documentElement;
+  if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  else {
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return toast('這個瀏覽器不支援全螢幕');
+    const p = req.call(el, { navigationUI: 'hide' });
+    if (p && p.catch) p.catch(() => toast('瀏覽器不允許全螢幕'));
+  }
+}
+if (!fsSupported) { document.querySelector('[data-act="fullscreen"]').classList.add('hidden'); $('#btnFsTitle').classList.add('hidden'); }
+document.addEventListener('fullscreenchange', () => {
+  document.querySelector('[data-act="fullscreen"]').textContent = document.fullscreenElement ? '🗗' : '⛶';
+});
+$('#btnFsTitle').addEventListener('click', toggleFullscreen);
+$('#btnMemTitle').addEventListener('click', openLock);
 function refreshMemories() {
   $('#memCount').textContent = found.size;
   memSprites.forEach((s) => (s.material.opacity = found.has(s.userData.mem.id) ? 0.35 : 1));
 }
 refreshMemories();
+setMemMode(false);
 
 // ------------------------------------------------------------------ player & avatar
 const player = new Player();
@@ -237,7 +305,7 @@ function showPhoto(m) {
 }
 function closeModal() {
   if (!modal) return;
-  $('#photo').classList.add('hidden'); $('#bigmap').classList.add('hidden');
+  $('#photo').classList.add('hidden'); $('#bigmap').classList.add('hidden'); $('#lock').classList.add('hidden');
   modal = null;
 }
 const bigmap = new Minimap($('#bigmapCanvas'));
@@ -325,7 +393,7 @@ function findTarget() {
   const f = player.forward();
   for (const s of memSprites) {
     const dx = s.position.x - player.pos.x, dz = s.position.z - player.pos.z, d = Math.hypot(dx, dz);
-    if (d < bd && Math.abs(player.pos.y) < 1 && (d < 0.35 || (dx * f.x + dz * f.z) / d > 0.3)) { bd = d; best = s; }
+    if (s.visible && d < bd && Math.abs(player.pos.y) < 1 && (d < 0.35 || (dx * f.x + dz * f.z) / d > 0.3)) { bd = d; best = s; }
   }
   return best;
 }
@@ -342,6 +410,8 @@ function use() {
 
 // ------------------------------------------------------------------ input
 addEventListener('keydown', (e) => {
+  if (modal === 'lock') { if (e.code === 'Escape') closeModal(); return; }
+  if (e.code === 'KeyF' && !e.repeat) { toggleFullscreen(); return; }
   if (app.mode === 'title') return;
   if (modal && e.code !== 'KeyM') { closeModal(); return; }
   if (app.mode === 'walk') {
@@ -416,6 +486,8 @@ $('#toolbar').addEventListener('click', (e) => {
   if (a === 'map') toggleBigMap();
   if (a === 'daynight') toggleDayNight();
   if (a === 'quality') toggleQuality();
+  if (a === 'fullscreen') toggleFullscreen();
+  if (a === 'memories') { openLock(); if (modal === 'lock') return; }
   if (a === 'sound') { app.audio.setMuted(!app.audio.muted); b.textContent = app.audio.muted ? '🔇' : '🔊'; }
   if (!isTouch && app.mode === 'walk' && !modal) lock();
 });
@@ -541,7 +613,7 @@ function frame(now) {
   updateLights(app.mode === 'walk' ? camera.position : orbit.target.clone().setY(1.5));
   if ((clock * 30 | 0) % 2 === 0) {
     const r = roomAt(player.pos.x, player.pos.z);
-    const st = { x: player.pos.x, z: player.pos.z, yaw: player.yaw, room: r, found, pulse: clock };
+    const st = { x: player.pos.x, z: player.pos.z, yaw: player.yaw, room: r, found, showMem: app.memMode, pulse: clock };
     if (app.mode === 'walk') minimap.draw(st);
     if (modal === 'map') bigmap.draw(st);
   }
